@@ -49,9 +49,10 @@ POS_ECORE_HIGH_COLOR = np.array([175, 255, 255], dtype=np.float32)
 NEG_ECORE_LOW_COLOR = np.array([25, 80, 100], dtype=np.float32)
 NEG_ECORE_HIGH_COLOR = np.array([40, 255, 255], dtype=np.float32)
 
-ROBOT_IP = '192.168.1.53'#'192.168.43.120' #'192.168.43.68' ##'192.168.0.148' #"127.0.0.1"
-ROBOT_PORT = 3000 #3001
-LEFT_TRACK_SPEED = 50#-100
+# '192.168.43.120' #'192.168.43.68' ##'192.168.0.148' #"127.0.0.1"
+ROBOT_IP = '192.168.1.53'
+ROBOT_PORT = 3000  # 3001
+LEFT_TRACK_SPEED = 50  # -100
 RIGHT_TRACK_SPEED = 50
 
 LIMIT = 100
@@ -69,6 +70,7 @@ def print_transforms(transforms):
         print(f'=== Aruco {aruco_id}\n'
               f'Position: X: {position[0]:.2f}, Y: {position[1]:.2f}\n'
               f'Rotation: {rotation[0]:.2f} Degrees\n')
+
 
 def print_core_positions(pos_ecore_positions, neg_ecore_positions):
     """
@@ -145,29 +147,32 @@ def main():
 
             for id in transforms.keys():
                 if id == 10:
-                    x = transforms[id]['position'][0]
-                    y = transforms[id]['position'][1]
-                    r = (math.atan((540 - y)/(540 - x)) * 180) / math.pi
-                    arurot = transforms[id]['rotation']
-                    arurot2 = arurot - r
-                    if arurot < 0:
-                        arurot = 360 - (arurot * -1)
-                    print(r)
-                    print(arurot)
-                    print(arurot2)
-                    if arurot > arurot2:
+                    robot = {
+                        x: transforms[id]['position'][0],
+                        y: transforms[id]['position'][1],
+                        rotation: transforms[id]['rotation']
+                    }
+
+                    target_rotation = (math.atan((540 - robot.y)/(540 - robot.x)) * 180) / math.pi
+                    rotation_diff = robot.rotation - target_rotation
+                    if robot.rotation < 0:
+                        robot.rotation = 360 - (robot.rotation * -1)
+                    print(target_rotation)
+                    print(robot.rotation)
+                    print(rotation_diff)
+                    if robot.rotation > rotation_diff:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"0;30", "utf-8"),(ROBOT_IP, ROBOT_PORT))
-                        #if transforms[id]['position'][1] < 540:
-                            #sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                            #sock.sendto(bytes(f"{LEFT_TRACK_SPEED};{RIGHT_TRACK_SPEED}", "utf-8"),(ROBOT_IP, ROBOT_PORT))
+                        sock.sendto(bytes(f"0;30", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+                        # if transforms[id]['position'][1] < 540:
+                        #sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        # sock.sendto(bytes(f"{LEFT_TRACK_SPEED};{RIGHT_TRACK_SPEED}", "utf-8"),(ROBOT_IP, ROBOT_PORT))
                     else:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"0;0", "utf-8"),(ROBOT_IP, ROBOT_PORT))
+                        sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
 
                 else:
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    sock.sendto(bytes(f"0;0", "utf-8"),(ROBOT_IP, ROBOT_PORT))
+                    sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
         else:
             cv2.imshow('frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
