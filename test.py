@@ -78,10 +78,10 @@ def print_core_positions(pos_ecore_positions, neg_ecore_positions):
     """
     if pos_ecore_positions:
         for i, core in enumerate(pos_ecore_positions):
-            print(f'Positive Core {i}: X: {core[0]:.2f}, Y: {core[1]:.2f}')
+            print(f'Negative Core {i}: X: {core[0]:.2f}, Y: {core[1]:.2f}')
     if neg_ecore_positions:
         for i, core in enumerate(neg_ecore_positions):
-            print(f'Negative Core {i}: X: {core[0]:.2f}, Y: {core[1]:.2f}')
+            print(f'Positive Core {i}: X: {core[0]:.2f}, Y: {core[1]:.2f}')
     if not pos_ecore_positions and not neg_ecore_positions:
         print('No Energy Cores detected')
     print('=== Done\n')
