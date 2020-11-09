@@ -90,17 +90,21 @@ def print_core_positions(pos_ecore_positions, neg_ecore_positions):
 def rad_to_deg(rad):
     return rad * 180 / math.pi
 
+
 def deg_to_rad(deg):
     return deg / 180 * math.pi
 
+
 def fix_x(x):
     return 1080-x
+
 
 def fix_degrees(deg):
     if deg < 0:
         return deg+270
     else:
         return deg-90
+
 
 def transform_target(robot, target_x, target_y):
     delta = deg_to_rad(robot['rotation'][0])
@@ -113,10 +117,15 @@ def transform_target(robot, target_x, target_y):
         math.sin(delta) + targetY * math.cos(delta)
 
     alfa = math.atan(targetYY / targetXX)
-    if targetXX < 0:
-        alfa += 180
+    if targetXX < 0:  # away from target
+        if alfa < 0:
+            alfa += 90
+        else:
+            alfa -= 90
+    # if targetXX < 0:
+    #     alfa += 180
 
-    return targetXX, targetYY, alfa
+    return targetXX, targetYY, rad_to_deg(alfa)
 
 
 def main():
@@ -184,20 +193,33 @@ def main():
                         "y": transforms[id]['position'][1],
                         "rotation": fix_degrees(transforms[id]['rotation'])
                     }
-                    target = {'x': 540, 'y': 540}
+
+                    max_core = None
+                    min_dist = 90000000
+
+                    for core in neg_ecore_positions:
+                        coreX, coreY, alfa = transform_target(
+                        robot, fix_x(core[0]), core[1])
+                        core_dist = coreX * math.sin(deg_to_rad(alfa))
+                        if core_dist < min_dist:
+                            max_core = core
+                            min_dist = core_dist
+
+
+                    target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
 
                     print("robot x: " + str(robot["x"]))
                     print("robot y: " + str(robot["y"]))
                     print("robot d: " + str(robot["rotation"]))
-                    
-                    targetXX, targetYY, alfa = transform_target(robot, target['x'], target['y'])
+
+                    targetXX, targetYY, alfa = transform_target(
+                        robot, target['x'], target['y'])
 
                     # print("alfa: " alfa)
                     # print("robot x:{:.2f} y: {:.2f} delta:{:.2f}".format(robot['x'], robot['y'], delta))
                     # print("target x:{:.2f} y: {:.2f} delta:?".format(target['x'], target['y']))
                     print("target after x:{:.2f} y: {:.2f} alfa:{:.2f}".format(
                         targetXX, targetYY, alfa))
-
 
                     speed = 30
 
@@ -211,7 +233,7 @@ def main():
                                     (ROBOT_IP, ROBOT_PORT))
                     else:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"0;-0", "utf-8"),
+                        sock.sendto(bytes(f"100;100", "utf-8"),
                                     (ROBOT_IP, ROBOT_PORT))
 
                     '''
