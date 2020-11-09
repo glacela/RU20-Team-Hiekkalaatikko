@@ -86,6 +86,20 @@ def print_core_positions(pos_ecore_positions, neg_ecore_positions):
         print('No Energy Cores detected')
     print('=== Done\n')
 
+def transform_target(robot, target_x, target_y):
+    delta = deg_to_rad(robot['rotation'])
+    target = {'x': target_x, 'y': target_y}
+    targetX = robot['x']-target['x']
+    targetY = robot['y']-target['y']
+    targetXX = targetX * \
+        math.cos(delta) - targetY * math.sin(delta)
+    targetYY = targetX * \
+        math.sin(delta) + targetY * math.cos(delta)
+    alfa = math.atan(targetYY / targetXX)
+    if targetXX < 0:
+        alfa += 180
+    return targetXX, targetYY, alfa
+
 
 def main():
     """
@@ -167,30 +181,23 @@ def main():
                         "y": transforms[id]['position'][1],
                         "rotation": fix_degrees(transforms[id]['rotation'])
                     }
+                    target = {'x': 540, 'y': 540}
 
                     print("robot x: " + str(robot["x"]))
                     print("robot y: " + str(robot["y"]))
                     print("robot d: " + str(robot["rotation"]))
+                    
+                    transformed_target = transform_target(robot, target['x'], target['y'])
+                    targetXX = transform_target[0]
+                    targetYY = transform_target[1]
+                    alfa = rad_to_deg(transform_target[2])
 
-                    delta = deg_to_rad(robot['rotation'])  # radiaanit
-                    target = {'x': 540, 'y': 540}
-                    targetX = robot['x']-target['x']
-                    targetY = robot['y']-target['y']
-                    targetXX = targetX * \
-                        math.cos(delta) - targetY * math.sin(delta)
-                    targetYY = targetX * \
-                        math.sin(delta) + targetY * math.cos(delta)
-                    alfa = math.atan(targetYY / targetXX)
-                    alfa = rad_to_deg(alfa)
                     # print("alfa: " alfa)
                     # print("robot x:{:.2f} y: {:.2f} delta:{:.2f}".format(robot['x'], robot['y'], delta))
                     # print("target x:{:.2f} y: {:.2f} delta:?".format(target['x'], target['y']))
                     print("target after x:{:.2f} y: {:.2f} alfa:{:.2f}".format(
                         targetXX, targetYY, alfa))
 
-                    towards_target = targetXX > 0
-                    if not towards_target:
-                        alfa += 180
 
                     speed = 30
 
