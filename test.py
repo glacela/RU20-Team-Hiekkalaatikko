@@ -148,19 +148,42 @@ def main():
             for id in transforms.keys():
                 if id == 10:
                     robot = {
-                        x: transforms[id]['position'][0],
-                        y: transforms[id]['position'][1],
-                        rotation: transforms[id]['rotation']
+                        "x": transforms[id]['position'][0],
+                        "y": transforms[id]['position'][1],
+                        "rotation": transforms[id]['rotation']
                     }
+                    if robot['rotation'] < 0:
+                        robot['rotation'] = 360 + robot['rotation'] # muutetaan neg asteet pos
+                    delta = robot['rotation'] * math.pi / 180 # radiaanit
+                    target = {'x': 540, 'y':540}
+                    targetX = target['x'] + robot['x']
+                    targetY = target['y'] + robot['y']
+                    targetXX = targetX * math.cos(delta) - targetY * math.sin(delta)
+                    targetYY = targetX * math.sin(delta) + targetY * math.cos(delta)
+                    alfa = math.atan(targetYY / targetXX)
+                    alfa = alfa / math.pi * 180
+                    #print("alfa: " alfa)
+                    print(f'alfa: {alfa:.2f}')
 
-                    target_rotation = (math.atan((540 - robot.y)/(540 - robot.x)) * 180) / math.pi
-                    rotation_diff = robot.rotation - target_rotation
-                    if robot.rotation < 0:
-                        robot.rotation = 360 - (robot.rotation * -1)
+                    if alfa < (-10):
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        sock.sendto(bytes(f"-30;30", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+                    elif alfa > (10):
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        sock.sendto(bytes(f"30;-30", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+                    else:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        sock.sendto(bytes(f"0;-0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+
+                    '''
+                    target_rotation = (math.atan((540 - robot["y"])/(540 - robot["x"])) * 180) / math.pi
+                    rotation_diff = robot['rotation'] - target_rotation
+                    if robot['rotation'] < 0:
+                        robot['rotation'] = 360 - (robot['rotation'] * -1)
                     print(target_rotation)
-                    print(robot.rotation)
+                    print(robot['rotation'])
                     print(rotation_diff)
-                    if robot.rotation > rotation_diff:
+                    if robot['rotation'] > rotation_diff:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"0;30", "utf-8"), (ROBOT_IP, ROBOT_PORT))
                         # if transforms[id]['position'][1] < 540:
@@ -169,10 +192,11 @@ def main():
                     else:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
-
+                    '''
                 else:
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+                
         else:
             cv2.imshow('frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
