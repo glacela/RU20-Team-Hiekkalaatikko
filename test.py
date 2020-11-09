@@ -145,35 +145,65 @@ def main():
                                                    rvecs=rvecs)
             print_transforms(transforms)
 
+            def rad_to_deg(rad):
+                return rad * 180 / math.pi
+
+            def deg_to_rad(deg):
+                return deg / 180 * math.pi
+
+            def fix_x(x):
+                return 1080-x
+
+            def fix_degrees(deg):
+                if deg < 0:
+                    return deg+270
+                else:
+                    return deg-90
+
             for id in transforms.keys():
                 if id == 10:
                     robot = {
-                        "x": transforms[id]['position'][0],
+                        "x": fix_x(transforms[id]['position'][0]),
                         "y": transforms[id]['position'][1],
-                        "rotation": transforms[id]['rotation']
+                        "rotation": fix_degrees(transforms[id]['rotation'])
                     }
-                    if robot['rotation'] < 0:
-                        robot['rotation'] = 360 + robot['rotation'] # muutetaan neg asteet pos
-                    delta = robot['rotation'] * math.pi / 180 # radiaanit
-                    target = {'x': 540, 'y':540}
-                    targetX = target['x'] + robot['x']
-                    targetY = target['y'] + robot['y']
-                    targetXX = targetX * math.cos(delta) - targetY * math.sin(delta)
-                    targetYY = targetX * math.sin(delta) + targetY * math.cos(delta)
-                    alfa = math.atan(targetYY / targetXX)
-                    alfa = alfa / math.pi * 180
-                    #print("alfa: " alfa)
-                    print(f'alfa: {alfa:.2f}')
 
-                    if alfa < (-10):
+                    print("robot x: " + str(robot["x"]))
+                    print("robot y: " + str(robot["y"]))
+                    print("robot d: " + str(robot["rotation"]))
+
+                    delta = deg_to_rad(robot['rotation'])  # radiaanit
+                    target = {'x': 540, 'y': 540}
+                    targetX = robot['x']-target['x']
+                    targetY = robot['y']-target['y']
+                    targetXX = targetX * \
+                        math.cos(delta) - targetY * math.sin(delta)
+                    targetYY = targetX * \
+                        math.sin(delta) + targetY * math.cos(delta)
+                    alfa = math.atan(targetYY / targetXX)
+                    alfa = rad_to_deg(alfa)
+                    # print("alfa: " alfa)
+                    # print("robot x:{:.2f} y: {:.2f} delta:{:.2f}".format(robot['x'], robot['y'], delta))
+                    # print("target x:{:.2f} y: {:.2f} delta:?".format(target['x'], target['y']))
+                    print("target after x:{:.2f} y: {:.2f} alfa:{:.2f}".format(
+                        targetXX, targetYY, alfa))
+
+                    towards_target = robot["x"] > 0
+
+                    speed = 30
+
+                    if alfa < -10:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"-30;30", "utf-8"), (ROBOT_IP, ROBOT_PORT))
-                    elif alfa > (10):
+                        sock.sendto(bytes(f"{speed};-{speed}", "utf-8"),
+                                    (ROBOT_IP, ROBOT_PORT))
+                    elif alfa > 10:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"30;-30", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+                        sock.sendto(bytes(f"-{speed};{speed}", "utf-8"),
+                                    (ROBOT_IP, ROBOT_PORT))
                     else:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"0;-0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+                        sock.sendto(bytes(f"0;-0", "utf-8"),
+                                    (ROBOT_IP, ROBOT_PORT))
 
                     '''
                     target_rotation = (math.atan((540 - robot["y"])/(540 - robot["x"])) * 180) / math.pi
@@ -193,10 +223,10 @@ def main():
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
                     '''
-                else:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
-                
+                # else:
+                #     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                #     sock.sendto(bytes(f"0;0", "utf-8"), (ROBOT_IP, ROBOT_PORT))
+
         else:
             cv2.imshow('frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
