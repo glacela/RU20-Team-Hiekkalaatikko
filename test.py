@@ -86,8 +86,24 @@ def print_core_positions(pos_ecore_positions, neg_ecore_positions):
         print('No Energy Cores detected')
     print('=== Done\n')
 
+
+def rad_to_deg(rad):
+    return rad * 180 / math.pi
+
+def deg_to_rad(deg):
+    return deg / 180 * math.pi
+
+def fix_x(x):
+    return 1080-x
+
+def fix_degrees(deg):
+    if deg < 0:
+        return deg+270
+    else:
+        return deg-90
+
 def transform_target(robot, target_x, target_y):
-    delta = deg_to_rad(robot['rotation'])
+    delta = deg_to_rad(robot['rotation'][0])
     target = {'x': target_x, 'y': target_y}
     targetX = robot['x']-target['x']
     targetY = robot['y']-target['y']
@@ -95,9 +111,11 @@ def transform_target(robot, target_x, target_y):
         math.cos(delta) - targetY * math.sin(delta)
     targetYY = targetX * \
         math.sin(delta) + targetY * math.cos(delta)
+
     alfa = math.atan(targetYY / targetXX)
     if targetXX < 0:
         alfa += 180
+
     return targetXX, targetYY, alfa
 
 
@@ -159,21 +177,6 @@ def main():
                                                    rvecs=rvecs)
             print_transforms(transforms)
 
-            def rad_to_deg(rad):
-                return rad * 180 / math.pi
-
-            def deg_to_rad(deg):
-                return deg / 180 * math.pi
-
-            def fix_x(x):
-                return 1080-x
-
-            def fix_degrees(deg):
-                if deg < 0:
-                    return deg+270
-                else:
-                    return deg-90
-
             for id in transforms.keys():
                 if id == 10:
                     robot = {
@@ -187,10 +190,7 @@ def main():
                     print("robot y: " + str(robot["y"]))
                     print("robot d: " + str(robot["rotation"]))
                     
-                    transformed_target = transform_target(robot, target['x'], target['y'])
-                    targetXX = transform_target[0]
-                    targetYY = transform_target[1]
-                    alfa = rad_to_deg(transform_target[2])
+                    targetXX, targetYY, alfa = transform_target(robot, target['x'], target['y'])
 
                     # print("alfa: " alfa)
                     # print("robot x:{:.2f} y: {:.2f} delta:{:.2f}".format(robot['x'], robot['y'], delta))
