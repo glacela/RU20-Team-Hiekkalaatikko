@@ -50,13 +50,10 @@ NEG_ECORE_LOW_COLOR = np.array([25, 80, 100], dtype=np.float32)
 NEG_ECORE_HIGH_COLOR = np.array([40, 255, 255], dtype=np.float32)
 
 # '192.168.43.120' #'192.168.43.68' ##'192.168.0.148' #"127.0.0.1"
-ROBOT_IP = '192.168.1.53'
+ROBOT_IP = '192.168.1.45'
 ROBOT_PORT = 3000  # 3001
 LEFT_TRACK_SPEED = 50  # -100
 RIGHT_TRACK_SPEED = 50
-
-LIMIT = 100
-
 
 def print_transforms(transforms):
     """
@@ -117,11 +114,11 @@ def transform_target(robot, target_x, target_y):
         math.sin(delta) + targetY * math.cos(delta)
 
     alfa = math.atan(targetYY / targetXX)
-    if targetXX < 0:  # away from target
+    '''if targetXX < 0:  # away from target
         if alfa < 0:
             alfa += 90
         else:
-            alfa -= 90
+            alfa -= 90'''
     # if targetXX < 0:
     #     alfa += 180
 
@@ -135,7 +132,10 @@ def main():
     """
     get_image_func = select_video_source(VIDEO_SOURCE)
     i = 0
+    LIMIT = 25
+    target = {'x': 540, 'y': 540}
     while True:
+        LIMIT = LIMIT + 1
         # Capture stream frame by frame
         frame = get_image_func()
         if frame is None:
@@ -169,7 +169,7 @@ def main():
             NEG_ECORE_LOW_COLOR,
             NEG_ECORE_HIGH_COLOR,
             'Negative Energy Cores')
-        #print_core_positions(pos_ecore_positions, neg_ecore_positions)
+        print_core_positions(pos_ecore_positions, neg_ecore_positions)
 
         if tvecs is not None and rvecs is not None:
             imaxis = aruco.drawDetectedMarkers(frame, corners, detected_ids)
@@ -187,7 +187,8 @@ def main():
             print_transforms(transforms)
 
             for id in transforms.keys():
-                if id == 10:
+                if id == 11:
+                    #if no cores, go to start
                     robot = {
                         "x": fix_x(transforms[id]['position'][0]),
                         "y": transforms[id]['position'][1],
@@ -205,8 +206,8 @@ def main():
                             max_core = core
                             min_dist = core_dist
 
-
-                    target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
+                    if LIMIT%25 == 0:
+                        target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
 
                     print("robot x: " + str(robot["x"]))
                     print("robot y: " + str(robot["y"]))
@@ -222,19 +223,24 @@ def main():
                         targetXX, targetYY, alfa))
 
                     speed = 30
-
-                    if alfa < -10:
+                    if alfa < -20:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"{speed};-{speed}", "utf-8"),
                                     (ROBOT_IP, ROBOT_PORT))
-                    elif alfa > 10:
+                    elif alfa > 20:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"-{speed};{speed}", "utf-8"),
                                     (ROBOT_IP, ROBOT_PORT))
-                    else:
+                    elif targetXX < 0:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        sock.sendto(bytes(f"-100;-100", "utf-8"),
+                                    (ROBOT_IP, ROBOT_PORT))
+                    elif targetXX > 0:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"100;100", "utf-8"),
                                     (ROBOT_IP, ROBOT_PORT))
+
+                    
 
                     '''
                     target_rotation = (math.atan((540 - robot["y"])/(540 - robot["x"])) * 180) / math.pi
