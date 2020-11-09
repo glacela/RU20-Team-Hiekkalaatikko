@@ -188,7 +188,9 @@ def main():
                     print("target after x:{:.2f} y: {:.2f} alfa:{:.2f}".format(
                         targetXX, targetYY, alfa))
 
-                    towards_target = robot["x"] > 0
+                    towards_target = targetXX > 0
+                    if not towards_target:
+                        alfa += 180
 
                     speed = 30
 
