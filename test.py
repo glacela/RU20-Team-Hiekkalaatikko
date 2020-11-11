@@ -199,9 +199,8 @@ def main():
                     min_dist = 90000000
 
                     for core in neg_ecore_positions:
-                        coreX, coreY, alfa = transform_target(
-                        robot, fix_x(core[0]), core[1])
-                        core_dist = coreX * math.sin(deg_to_rad(alfa))
+                        coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
+                        core_dist = coreX*coreX + coreY*coreY # a^2 + b^2 = c^2, no need to sqrt for distance comparison
                         if core_dist < min_dist:
                             max_core = core
                             min_dist = core_dist
