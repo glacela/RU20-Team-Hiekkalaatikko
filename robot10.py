@@ -49,10 +49,7 @@ POS_ECORE_HIGH_COLOR = np.array([175, 255, 255], dtype=np.float32)
 NEG_ECORE_LOW_COLOR = np.array([25, 80, 100], dtype=np.float32)
 NEG_ECORE_HIGH_COLOR = np.array([40, 255, 255], dtype=np.float32)
 
-# '192.168.43.120' #'192.168.43.68' ##'192.168.0.148' #"127.0.0.1"
-# ROBOT_IP = '192.168.1.45'
 IP_10 = '192.168.1.53'
-IP_11 = '192.168.1.45'
 
 ROBOT_PORT = 3000  # 3001
 LEFT_TRACK_SPEED = 50  # -100
@@ -127,6 +124,16 @@ def transform_target(robot, target_x, target_y):
 
     return targetXX, targetYY, rad_to_deg(alfa)
 
+def pointbehindball(target, startposx, startposy, pallo):
+    if (pallo == 1):
+        k = (target['y'] - startposy)/(target['x'] - fix_x(startposx))
+        x = target['x'] - 150
+    else:
+        k = (target['y'] - startposy)/(target['x'] - fix_x(startposx))
+        x = target['x'] + 150
+    y = k * (x - fix_x(startposx)) + startposy
+    print("X IS " + str(x) + " Y IS " + str(y) + " K IS " + str(k) + "STARTPOS Y IS " + str(startposy))
+    return x, y
 
 def main():
     """
@@ -136,9 +143,19 @@ def main():
     get_image_func = select_video_source(VIDEO_SOURCE)
     i = 0
     LIMIT = 25
-    start_posx = 250
-    start_posy = 250
+    startposx = 250
+    startposy = 250
+    e_startposy = 900
+    e_startposx = 900
     target = {'x': 540, 'y': 540}
+    speed = 45
+    '''
+    STATE 0 = jahtaa palloja
+    STATE 1 = menossa vihollisen maaliin
+    STATE 2 = menossa omaan maaliin
+    STATE 3 = pakoon
+    '''
+    state = 1
     while True:
         LIMIT = LIMIT + 1
         # Capture stream frame by frame
@@ -193,6 +210,7 @@ def main():
 
             for id in transforms.keys():
                 if id == 10:
+                    print("STATE IS " + str(state))
                     robot = {
                         "x": fix_x(transforms[id]['position'][0]),
                         "y": transforms[id]['position'][1],
@@ -201,67 +219,49 @@ def main():
 
                     max_core = None
                     min_dist = 90000000
-
-                    if pos_ecore_positions: #pos_ecore = NEGATIVE, RED BALLS
+                    if pos_ecore_positions and state == 0: #pos_core NEGATIVE, YELLOW BALLS Jos löytyy punaisia palloja JA ollaan jahtaamassa palloja  
                         for core in pos_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
                             core_dist = coreX*coreX + coreY*coreY # a^2 + b^2 = c^2, no need to sqrt for distance comparison
                             if core_dist < min_dist:
                                 max_core = core
                                 min_dist = core_dist
-
+                        '''
+                        Joka 25. frame tsekkaa lähimmän (PUN)pallon lokaation
+                        jos lähin pallo on vihollisen maalissa
+                        lähtee kulkemaan omaan maaliin
+                        '''
                         if LIMIT%25 == 0:
                             target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
-
-                    else:
-                        target = {'x': fix_x(start_posx + 100), 'y': start_posy + 100}
-
-                    targetXX, targetYY, alfa = transform_target(
-                        robot, target['x'], target['y'])
-
-                    print("target after x:{:.2f} y: {:.2f} alfa:{:.2f}".format(
-                        targetXX, targetYY, alfa))
-
-                    speed = 0
-                    if alfa < -20:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"{speed};-{speed}", "utf-8"),
-                                    (IP_10, ROBOT_PORT))
-                    elif alfa > 20:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"-{speed};{speed}", "utf-8"),
-                                    (IP_10, ROBOT_PORT))
-                    elif targetXX < 0:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"-100;-100", "utf-8"),
-                                    (IP_10, ROBOT_PORT))
-                    elif targetXX > 0:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.sendto(bytes(f"100;100", "utf-8"),
-                                    (IP_10, ROBOT_PORT))
-                if id == 11:
-                    robot = {
-                        "x": fix_x(transforms[id]['position'][0]),
-                        "y": transforms[id]['position'][1],
-                        "rotation": fix_degrees(transforms[id]['rotation'])
-                    }
-
-                    max_core = None
-                    min_dist = 90000000
-
-                    if neg_ecore_positions: #neg_ecore POSITIVE, YELLOW BALLS
+                            #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
+                            if target['x'] < fix_x(e_startposx) and target['y'] > e_startposy:
+                                state = 2
+                    elif neg_ecore_positions and state == 0: #neg_ecore POSITIVE, YELLOW BALLS
                         for core in neg_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
                             core_dist = coreX*coreX + coreY*coreY # a^2 + b^2 = c^2, no need to sqrt for distance comparison
                             if core_dist < min_dist:
                                 max_core = core
                                 min_dist = core_dist
-
+                        '''
+                        Joka 25. frame tsekkaa lähimmän (KEL)pallon lokaation
+                        laskee robotille kohteeksi pisteen pallon lokaation takana
+                        jos lähin pallo on omassa maalissa
+                        lähtee kulkemaan vastustajan maaliin
+                        '''
                         if LIMIT%25 == 0:
                             target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
-
-                    else:
-                        target = {'x': fix_x(start_posx), 'y': start_posy}
+                            #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
+                            if fix_x(startposx) > 540:
+                                if target['x'] > fix_x(startposx) and target['y'] < startposy:
+                                    state = 1
+                            else:
+                                if target['x'] < fix_x(startposx) and target['y'] > startposy:
+                                    state = 1
+                    elif state == 1:
+                        target = {'x': fix_x(e_startposx), 'y': e_startposy}
+                    elif state == 2:
+                        target = {'x': fix_x(startposx), 'y': startposy}
 
                     targetXX, targetYY, alfa = transform_target(
                         robot, target['x'], target['y'])
@@ -269,24 +269,50 @@ def main():
                     print("target after x:{:.2f} y: {:.2f} alfa:{:.2f}".format(
                         targetXX, targetYY, alfa))
 
-                    speed = 0
                     if alfa < -20:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"{speed};-{speed}", "utf-8"),
-                                    (IP_11, ROBOT_PORT))
+                                    (IP_10, ROBOT_PORT))
                     elif alfa > 20:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"-{speed};{speed}", "utf-8"),
-                                    (IP_11, ROBOT_PORT))
+                                    (IP_10, ROBOT_PORT))
                     elif targetXX < 0:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"-100;-100", "utf-8"),
-                                    (IP_11, ROBOT_PORT))
+                                    (IP_10, ROBOT_PORT))
                     elif targetXX > 0:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(bytes(f"100;100", "utf-8"),
-                                    (IP_11, ROBOT_PORT))
-
+                                    (IP_10, ROBOT_PORT))
+                    '''
+                        jos ollaan menossa vastustajan maaliin
+                        jos vastustajan maali on pieni x iso y
+                        jos robotin koordinaatit ovat pienemmät ja isommat
+                        ryhdy jahtaamaan palloja
+                        jos vastustajan maali on iso x pieni y
+                        jos robotit koordinaatit ovat isommat ja pienemmät
+                        ryhdy jahtaamaan palloja
+                        jos ollaan menossa omaan maaliin, sama homma mutta omaan
+                        maaliin verraten.
+                    '''
+                    if state == 1:
+                        if fix_x(e_startposx) < 540:
+                            if robot['x'] < 2 * fix_x(e_startposx) and robot['y'] > e_startposy - 130:
+                                state = 0
+                        else:
+                            if robot['x'] > fix_x(e_startposx) - 130 and robot['y'] < 2 * e_startposy:
+                                state = 0
+                    elif state == 2:
+                        if fix_x(startposx) < 540:
+                            if robot['x'] < 2 * fix_x(startposx) and robot['y'] > startposy - 130:
+                                state = 0
+                        else:
+                            if robot['x'] > fix_x(startposx) - 130 and robot['y'] < 2 * startposy:
+                                state = 0
+                    #elif state == 3:
+                        #if robot['x'] < 500 and robot['y'] > 500:
+                            #state = 0
         else:
             cv2.imshow('frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):

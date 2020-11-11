@@ -124,6 +124,16 @@ def transform_target(robot, target_x, target_y):
 
     return targetXX, targetYY, rad_to_deg(alfa)
 
+def pointbehindball(target, startposx, startposy, pallo):
+    if (pallo == 1):
+        k = (target['y'] - startposy)/(target['x'] - fix_x(startposx))
+        x = target['x'] - 150
+    else:
+        k = (target['y'] - startposy)/(target['x'] - fix_x(startposx))
+        x = target['x'] + 150
+    y = k * (x - fix_x(startposx)) + startposy
+    print("X IS " + str(x) + " Y IS " + str(y) + " K IS " + str(k) + "STARTPOS Y IS " + str(startposy))
+    return x, y
 
 def main():
     """
@@ -143,6 +153,7 @@ def main():
     STATE 0 = jahtaa palloja
     STATE 1 = menossa vihollisen maaliin
     STATE 2 = menossa omaan maaliin
+    STATE 3 = pakoon
     '''
     state = 1
     while True:
@@ -208,8 +219,10 @@ def main():
 
                     max_core = None
                     min_dist = 90000000
+                    '''
+                    Jos löytyy keltaisia palloja JA ollaan jahtaamassa palloja
+                    '''
                     if neg_ecore_positions and state == 0: #neg_ecore POSITIVE, YELLOW BALLS
-                        speed = 30
                         for core in neg_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
                             core_dist = coreX*coreX + coreY*coreY # a^2 + b^2 = c^2, no need to sqrt for distance comparison
@@ -218,16 +231,29 @@ def main():
                                 min_dist = core_dist
                         '''
                         Joka 25. frame tsekkaa lähimmän (KEL)pallon lokaation
+                        laskee robotille kohteeksi pisteen pallon lokaation takana
                         jos lähin pallo on omassa maalissa
                         lähtee kulkemaan vastustajan maaliin
                         '''
                         if LIMIT%25 == 0:
                             target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
-                            print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
-                            if target['x'] > fix_x(startposx) and target['y'] < startposy:
-                                state = 1
-                    elif pos_ecore_positions and state == 0: #pos_core NEGATIVE, YELLOW BALLS
-                        speed = 30
+                            '''
+                            target['x'], target['y'] = pointbehindball(ball, startposx, startposy, 1)
+                            a = (robot['x'] - target['x']) * (robot['x'] - target['x'])
+                            b = (robot['y'] - target['y']) * (robot['y'] - target['y'])
+                            c = math.sqrt(a + b)
+                            if (c < 300):
+                                target['x'] = ball['x']
+                                target['y'] = ball['y']
+                            '''
+                            #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
+                            if fix_x(startposx) > 540:
+                                if target['x'] > fix_x(startposx) and target['y'] < startposy:
+                                    state = 1
+                            else:
+                                if target['x'] < fix_x(startposx) and target['y'] > startposy:
+                                    state = 1
+                    elif pos_ecore_positions and state == 0: #pos_core NEGATIVE, YELLOW BALLS Jos löytyy punaisia palloja JA ollaan jahtaamassa palloja  
                         for core in pos_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
                             core_dist = coreX*coreX + coreY*coreY # a^2 + b^2 = c^2, no need to sqrt for distance comparison
@@ -241,13 +267,15 @@ def main():
                         '''
                         if LIMIT%25 == 0:
                             target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
-                            print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
+                            #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
                             if target['x'] < fix_x(e_startposx) and target['y'] > e_startposy:
                                 state = 2
                     elif state == 1:
                         target = {'x': fix_x(e_startposx), 'y': e_startposy}
                     elif state == 2:
                         target = {'x': fix_x(startposx), 'y': startposy}
+                    #elif state == 3:
+                        #target = {'x': 540, 'y': 540}
 
                     targetXX, targetYY, alfa = transform_target(
                         robot, target['x'], target['y'])
@@ -279,6 +307,8 @@ def main():
                         jos vastustajan maali on iso x pieni y
                         jos robotit koordinaatit ovat isommat ja pienemmät
                         ryhdy jahtaamaan palloja
+                        jos ollaan menossa omaan maaliin, sama homma mutta omaan
+                        maaliin verraten.
                     '''
                     if state == 1:
                         if fix_x(e_startposx) < 540:
@@ -294,6 +324,9 @@ def main():
                         else:
                             if robot['x'] > fix_x(startposx) - 130 and robot['y'] < 2 * startposy:
                                 state = 0
+                    #elif state == 3:
+                        #if robot['x'] < 500 and robot['y'] > 500:
+                            #state = 0
         else:
             cv2.imshow('frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
