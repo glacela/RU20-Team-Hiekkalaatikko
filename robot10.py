@@ -234,8 +234,12 @@ def main():
                         if LIMIT%25 == 0:
                             target = {'x': fix_x(max_core[0]), 'y': max_core[1]}
                             #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
-                            if target['x'] < fix_x(e_startposx) and target['y'] > e_startposy:
-                                state = 2
+                            if fix_x(startposx) > 540:     
+                                if target['x'] < fix_x(e_startposx) and target['y'] > e_startposy:
+                                    state = 2
+                            else:
+                                if target['x'] > fix_x(e_startposx) and target['y'] < e_startposy:
+                                    state = 2
                     elif neg_ecore_positions and state == 0: #neg_ecore POSITIVE, YELLOW BALLS
                         for core in neg_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
