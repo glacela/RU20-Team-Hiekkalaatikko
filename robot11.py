@@ -49,7 +49,7 @@ POS_ECORE_HIGH_COLOR = np.array([175, 255, 255], dtype=np.float32)
 NEG_ECORE_LOW_COLOR = np.array([25, 80, 100], dtype=np.float32)
 NEG_ECORE_HIGH_COLOR = np.array([40, 255, 255], dtype=np.float32)
 
-IP_11 = '192.168.1.45'
+IP_11 = '192.168.1.53'
 
 ROBOT_PORT = 3000  # 3001
 LEFT_TRACK_SPEED = 50  # -100
