@@ -155,7 +155,12 @@ def main():
     STATE 2 = menossa omaan maaliin
     SCRAPPED STATE 3 = pakoon 
     '''
-    state = 1
+    CHASE_BALLS = 0
+    MOVE_TO_ENEMY_GOAL = 1
+    MOVE_TO_OWN_GOAL = 2
+    UNUSED_STATE = 3
+
+    state = MOVE_TO_ENEMY_GOAL
     while True:
         LIMIT = LIMIT + 1
         # Capture stream frame by frame
@@ -222,7 +227,7 @@ def main():
                     '''
                     Jos löytyy keltaisia palloja JA ollaan jahtaamassa palloja
                     '''
-                    if neg_ecore_positions and state == 0: #neg_ecore POSITIVE, YELLOW BALLS
+                    if neg_ecore_positions and state == CHASE_BALLS: #neg_ecore POSITIVE, YELLOW BALLS
                         for core in neg_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
                             core_dist = coreX*coreX + coreY*coreY # a^2 + b^2 = c^2, no need to sqrt for distance comparison
@@ -248,10 +253,10 @@ def main():
                             #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
                             if fix_x(startposx) > 540:
                                 if target['x'] > fix_x(startposx) and target['y'] < startposy:
-                                    state = 1
+                                    state = MOVE_TO_ENEMY_GOAL
                             else:
                                 if target['x'] < fix_x(startposx) and target['y'] > startposy:
-                                    state = 1
+                                    state = MOVE_TO_ENEMY_GOAL
                     elif pos_ecore_positions and state == 0: #pos_core NEGATIVE, YELLOW BALLS Jos löytyy punaisia palloja JA ollaan jahtaamassa palloja  
                         for core in pos_ecore_positions:
                             coreX, coreY, alfa = transform_target(robot, fix_x(core[0]), core[1])
@@ -269,13 +274,13 @@ def main():
                             #print("TARGET X ON " + str(target['x']) + "\n VS STARTPOS " + str(fix_x(startposx)) + "TARGET Y ON " + str(target['y']) + "\n VS STARTPOSY " + str(startposy))
                             if fix_x(startposx) > 540:     
                                 if target['x'] < fix_x(e_startposx) and target['y'] > e_startposy:
-                                    state = 2
+                                    state = MOVE_TO_OWN_GOAL
                             else:
                                 if target['x'] > fix_x(e_startposx) and target['y'] < e_startposy:
-                                    state = 2
-                    elif state == 1:
+                                    state = MOVE_TO_OWN_GOAL
+                    elif state == MOVE_TO_ENEMY_GOAL:
                         target = {'x': fix_x(e_startposx), 'y': e_startposy}
-                    elif state == 2:
+                    elif state == MOVE_TO_OWN_GOAL:
                         target = {'x': fix_x(startposx), 'y': startposy}
                     #elif state == 3:
                         #target = {'x': 540, 'y': 540}
@@ -313,20 +318,20 @@ def main():
                         jos ollaan menossa omaan maaliin, sama homma mutta omaan
                         maaliin verraten.
                     '''
-                    if state == 1:
+                    if state == MOVE_TO_ENEMY_GOAL:
                         if fix_x(e_startposx) < 540:
                             if robot['x'] < 2 * fix_x(e_startposx) and robot['y'] > e_startposy - 130:
-                                state = 0
+                                state = CHASE_BALLS
                         else:
                             if robot['x'] > fix_x(e_startposx) - 130 and robot['y'] < 2 * e_startposy:
-                                state = 0
-                    elif state == 2:
+                                state = CHASE_BALLS
+                    elif state == MOVE_TO_OWN_GOAL:
                         if fix_x(startposx) < 540:
                             if robot['x'] < 2 * fix_x(startposx) and robot['y'] > startposy - 130:
-                                state = 0
+                                state = CHASE_BALLS
                         else:
                             if robot['x'] > fix_x(startposx) - 130 and robot['y'] < 2 * startposy:
-                                state = 0
+                                state = CHASE_BALLS
                     #elif state == 3:
                         #if robot['x'] < 500 and robot['y'] > 500:
                             #state = 0
