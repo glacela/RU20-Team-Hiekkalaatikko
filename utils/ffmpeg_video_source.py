@@ -77,6 +77,8 @@ class FFMpegVideoSource():
 
             cap = cv2.VideoCapture(url)
             while True:
+                center = (540, 540)
+                M = cv2.getRotationMatrix2D(center, 90, 1.0)
                 ret, frame = cap.read()
                 if not ret:
                     break
@@ -84,7 +86,7 @@ class FFMpegVideoSource():
                     print(f'No image from {url}')
                     continue
                 with shared_array.get_lock():
-                    image_inside_thread[:] = frame
+                    image_inside_thread[:] = cv2.warpAffine(frame, M, (IMAGE_HEIGHT, IMAGE_WIDTH))
 
         except Exception as error:
             print(f'Got unexpected exception in "main" Message: {error}')
